@@ -140,6 +140,13 @@ void fbdev_init(void)
         perror("Error reading variable information");
         return;
     }
+
+    // Force activation
+    vinfo.activate |= FB_ACTIVATE_NOW | FB_ACTIVATE_FORCE;
+    if (ioctl(fbfd, FBIOPUT_VSCREENINFO, &vinfo) < 0) {
+        /* Swallow this error to not spam the terminal */
+        perror("Failed to (force) active fbdev");
+    }
 #endif /* USE_BSD_FBDEV */
 
     LV_LOG_INFO("%dx%d, %dbpp", vinfo.xres, vinfo.yres, vinfo.bits_per_pixel);
