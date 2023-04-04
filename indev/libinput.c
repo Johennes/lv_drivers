@@ -242,22 +242,22 @@ void libinput_deinit_state(libinput_drv_state_t *state)
 /**
  * Read available input events via libinput using the default driver state. Use this function if you only want
  * to connect a single device.
- * @param indev_drv driver object itself
+ * @param indev indev object itself
  * @param data store the libinput data here
  */
-void libinput_read(lv_indev_drv_t * indev_drv, lv_indev_data_t * data)
+void libinput_read(lv_indev_t * indev, lv_indev_data_t * data)
 {
-  libinput_read_state(&default_state, indev_drv, data);
+  libinput_read_state(&default_state, indev, data);
 }
 
 /**
  * Read available input events via libinput using a specific driver state. Use this function if you want to
  * connect multiple devices.
  * @param state the driver state to use
- * @param indev_drv driver object itself
+ * @param indev indev object itself
  * @param data store the libinput data here
  */
-void libinput_read_state(libinput_drv_state_t * state, lv_indev_drv_t * indev_drv, lv_indev_data_t * data)
+void libinput_read_state(libinput_drv_state_t * state, lv_indev_t * indev, lv_indev_data_t * data)
 {
   struct libinput_event *event;
   int rc = 0;
@@ -273,7 +273,7 @@ void libinput_read_state(libinput_drv_state_t * state, lv_indev_drv_t * indev_dr
   }
   libinput_dispatch(state->libinput_context);
   while((event = libinput_get_event(state->libinput_context)) != NULL) {
-    switch (indev_drv->type) {
+    switch (indev->type) {
       case LV_INDEV_TYPE_POINTER:
         read_pointer(state, event);
         break;
@@ -414,15 +414,15 @@ static void read_pointer(libinput_drv_state_t *state, struct libinput_event *eve
 
   /* We need to read unrotated display dimensions directly from the driver because libinput won't account
    * for any rotation inside of LVGL */
-  lv_disp_drv_t *drv = lv_disp_get_default()->driver;
+  lv_disp_t *disp = lv_disp_get_default();
 
   switch (type) {
     case LIBINPUT_EVENT_TOUCH_MOTION:
     case LIBINPUT_EVENT_TOUCH_DOWN:
       touch_event = libinput_event_get_touch_event(event);
-      lv_coord_t x = libinput_event_touch_get_x_transformed(touch_event, drv->physical_hor_res > 0 ? drv->physical_hor_res : drv->hor_res) - drv->offset_x;
-      lv_coord_t y = libinput_event_touch_get_y_transformed(touch_event, drv->physical_ver_res > 0 ? drv->physical_ver_res : drv->ver_res) - drv->offset_y;
-      if (x < 0 || x > drv->hor_res || y < 0 || y > drv->ver_res) {
+      lv_coord_t x = libinput_event_touch_get_x_transformed(touch_event, disp->physical_hor_res > 0 ? disp->physical_hor_res : disp->hor_res) - disp->offset_x;
+      lv_coord_t y = libinput_event_touch_get_y_transformed(touch_event, disp->physical_ver_res > 0 ? disp->physical_ver_res : disp->ver_res) - disp->offset_y;
+      if (x < 0 || x > disp->hor_res || y < 0 || y > disp->ver_res) {
         break; /* ignore touches that are out of bounds */
       }
       state->most_recent_touch_point.x = x;
@@ -436,8 +436,8 @@ static void read_pointer(libinput_drv_state_t *state, struct libinput_event *eve
       pointer_event = libinput_event_get_pointer_event(event);
       state->most_recent_touch_point.x += libinput_event_pointer_get_dx(pointer_event);
       state->most_recent_touch_point.y += libinput_event_pointer_get_dy(pointer_event);
-      state->most_recent_touch_point.x = LV_CLAMP(0, state->most_recent_touch_point.x, drv->hor_res - 1);
-      state->most_recent_touch_point.y = LV_CLAMP(0, state->most_recent_touch_point.y, drv->ver_res - 1);
+      state->most_recent_touch_point.x = LV_CLAMP(0, state->most_recent_touch_point.x, disp->hor_res - 1);
+      state->most_recent_touch_point.y = LV_CLAMP(0, state->most_recent_touch_point.y, disp->ver_res - 1);
       break;
     case LIBINPUT_EVENT_POINTER_BUTTON:
       pointer_event = libinput_event_get_pointer_event(event);
